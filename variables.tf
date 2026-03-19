@@ -1,23 +1,13 @@
-variable "project" {
-  description = "Project name"
+# 스택 이름 변수
+variable "stack_name" {
+  description = "CloudFormation 스택 이름"
   type        = string
-  default     = "dndn-demo"
+  default     = "DnDn-OpsAgent"
 }
 
-variable "vpc_cidr" {
-  description = "VPC CIDR block"
+# 스택 ARN 변수
+variable "stack_arn" {
+  description = "CloudFormation 스택 ARN"
   type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "public_subnet_cidr" {
-  description = "Public subnet CIDR"
-  type        = string
-  default     = "10.0.1.0/24"
-}
-
-variable "private_subnet_cidr" {
-  description = "Private subnet CIDR"
-  type        = string
-  default     = "10.0.2.0/24"
+  default     = "arn:aws:cloudformation:ap-northeast-2:451017115109:stack/DnDn-OpsAgent/6cecc720-2362-11f1-83e5-0aa0bd5694a3"
 }
