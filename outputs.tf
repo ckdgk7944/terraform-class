@@ -1,23 +1,19 @@
-output "vpc_id" {
-  value = aws_vpc.main.id
+output "security_group_id" {
+  description = "생성된 보안 그룹 ID"
+  value       = aws_security_group.ec2_enhanced_sg.id
 }
 
-output "ec2_instance_id" {
-  value = aws_instance.demo.id
+output "nacl_id" {
+  description = "생성된 NACL ID"
+  value       = aws_network_acl.enhanced_nacl.id
 }
 
-output "ec2_public_ip" {
-  value = aws_instance.demo.public_ip
+output "flow_log_group_name" {
+  description = "VPC Flow Logs CloudWatch 로그 그룹 이름"
+  value       = aws_cloudwatch_log_group.flow_log_group.name
 }
 
-output "demo_s3_bucket" {
-  value = aws_s3_bucket.demo_public.id
-}
-
-output "guardduty_detector_id" {
-  value = aws_guardduty_detector.main.id
-}
-
-output "access_analyzer_arn" {
-  value = aws_accessanalyzer_analyzer.main.arn
+output "cloudtrail_arn" {
+  description = "CloudTrail ARN"
+  value       = aws_cloudtrail.main.arn
 }
