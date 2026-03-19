@@ -1,23 +1,19 @@
-variable "project" {
-  description = "Project name"
+variable "vpc_id" {
+  description = "VPC ID"
   type        = string
-  default     = "dndn-demo"
 }
 
-variable "vpc_cidr" {
-  description = "VPC CIDR block"
-  type        = string
-  default     = "10.0.0.0/16"
+variable "allowed_cidr_blocks" {
+  description = "허용된 CIDR 블록 리스트"
+  type        = list(string)
+  validation {
+    condition     = !contains(var.allowed_cidr_blocks, "0.0.0.0/0")
+    error_message = "CIDR block 0.0.0.0/0 is not allowed."
+  }
 }
 
-variable "public_subnet_cidr" {
-  description = "Public subnet CIDR"
+variable "environment" {
+  description = "환경 (예: prod, dev, stage)"
   type        = string
-  default     = "10.0.1.0/24"
-}
-
-variable "private_subnet_cidr" {
-  description = "Private subnet CIDR"
-  type        = string
-  default     = "10.0.2.0/24"
+  default     = "prod"
 }
