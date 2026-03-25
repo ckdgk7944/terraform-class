@@ -1,28 +1,77 @@
-# ── MFA 없는 IAM User (Security Hub Finding 유발) ──
-# → sh-iam (IAM.1, IAM.4, IAM.6)
-resource "aws_iam_user" "demo_no_mfa" {
-  name = "${var.project}-no-mfa"
-  tags = { Name = "${var.project}-no-mfa" }
+# IAM User with MFA enforcement
+resource "aws_iam_user" "rafa" {
+  name = "RAFA_1"
+  force_mfa = true
+  
+  tags = {
+    Name = "RAFA_1"
+    Environment = "Production"
+    Team = "Security"
+    Service = "IAM"
+  }
 }
 
-resource "aws_iam_user_policy_attachment" "demo_admin" {
-  user       = aws_iam_user.demo_no_mfa.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-}
+resource "aws_iam_user_policy" "rafa_restricted" {
+  name = "restricted-s3-access"
+  user = aws_iam_user.rafa.name
 
-resource "aws_iam_user_policy" "demo_wildcard" {
-  name   = "inline-s3-public"
-  user   = aws_iam_user.demo_no_mfa.name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = "s3:*"
-      Resource = "*"
+      Effect = "Allow"
+      Action = [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ]
+      Resource = [
+        "arn:aws:s3:::specific-bucket",
+        "arn:aws:s3:::specific-bucket/*"
+      ]
     }]
   })
 }
 
-resource "aws_iam_access_key" "demo_no_mfa" {
-  user = aws_iam_user.demo_no_mfa.name
+resource "aws_iam_user_login_profile" "rafa" {
+  user                    = aws_iam_user.rafa.name
+  password_reset_required = true
+  pgp_key                = "keybase:username"
+}
+
+resource "aws_iam_policy" "require_mfa" {
+  name        = "RequireMFA"
+  path        = "/"
+  description = "Requires MFA for all actions"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Deny"
+        NotAction = [
+          "iam:CreateVirtualMFADevice",
+          "iam:EnableMFADevice",
+          "iam:GetUser",
+          "iam:ListMFADevices",
+          "iam:ListVirtualMFADevices",
+          "iam:ResyncMFADevice"
+        ]
+        Resource = "*"
+        Condition = {
+          BoolIfExists = {
+            "aws:MultiFactorAuthPresent": "false"
+          }
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_user_policy_attachment" "rafa_mfa" {
+  user       = aws_iam_user.rafa.name
+  policy_arn = aws_iam_policy.require_mfa.arn
+}
+
+resource "aws_iam_user_policy_attachment" "rafa_boundary" {
+  user       = aws_iam_user.rafa.name
+  policy_arn = "arn:aws:iam::aws:policy/PowerUserAccess"
 }
