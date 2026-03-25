@@ -21,3 +21,13 @@ variable "private_subnet_cidr" {
   type        = string
   default     = "10.0.2.0/24"
 }
+
+variable "required_tags" {
+  description = "Required tags for all resources"
+  type        = map(string)
+  default     = {
+    Environment = "development"
+    Team        = "platform"
+    Service     = "demo"
+  }
+}
