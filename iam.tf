@@ -1,28 +1,80 @@
-# ── MFA 없는 IAM User (Security Hub Finding 유발) ──
-# → sh-iam (IAM.1, IAM.4, IAM.6)
-resource "aws_iam_user" "demo_no_mfa" {
-  name = "${var.project}-no-mfa"
-  tags = { Name = "${var.project}-no-mfa" }
+# MFA 강제 IAM 사용자로 변경
+resource "aws_iam_user" "demo_mfa" {
+  name = "${var.project}-mfa-required"
+  force_destroy = true
+  
+  tags = merge(
+    { Name = "${var.project}-mfa-required" },
+    var.required_tags
+  )
 }
 
-resource "aws_iam_user_policy_attachment" "demo_admin" {
-  user       = aws_iam_user.demo_no_mfa.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-}
+# Permission boundary 정책 생성
+resource "aws_iam_policy" "user_boundary" {
+  name = "${var.project}-user-boundary"
+  path = "/"
+  description = "Permission boundary for IAM users"
 
-resource "aws_iam_user_policy" "demo_wildcard" {
-  name   = "inline-s3-public"
-  user   = aws_iam_user.demo_no_mfa.name
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = "s3:*"
-      Resource = "*"
-    }]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetObject"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.project}-*",
+          "arn:aws:s3:::${var.project}-*/*"
+        ]
+      }
+    ]
   })
 }
 
-resource "aws_iam_access_key" "demo_no_mfa" {
-  user = aws_iam_user.demo_no_mfa.name
+# MFA 조건부 정책 생성
+resource "aws_iam_policy" "require_mfa" {
+  name = "${var.project}-require-mfa"
+  path = "/"
+  description = "Policy that requires MFA"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetObject"
+        ]
+        Resource = [
+          "arn:aws:s3:::${var.project}-*",
+          "arn:aws:s3:::${var.project}-*/*"
+        ]
+        Condition = {
+          Bool = {
+            "aws:MultiFactorAuthPresent": "true"
+          }
+        }
+      }
+    ]
+  })
+}
+
+# Permission boundary 적용
+resource "aws_iam_user_policy_attachment" "user_boundary" {
+  user = aws_iam_user.demo_mfa.name
+  policy_arn = aws_iam_policy.user_boundary.arn
+}
+
+# MFA 필수 정책 적용 
+resource "aws_iam_user_policy_attachment" "require_mfa" {
+  user = aws_iam_user.demo_mfa.name
+  policy_arn = aws_iam_policy.require_mfa.arn
+}
+
+# Access key 생성
+resource "aws_iam_access_key" "demo_mfa" {
+  user = aws_iam_user.demo_mfa.name
 }
