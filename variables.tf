@@ -4,20 +4,17 @@ variable "project" {
   default     = "dndn-demo"
 }
 
-variable "vpc_cidr" {
-  description = "VPC CIDR block"
+variable "pgp_key" {
+  description = "PGP key for IAM user password encryption"
   type        = string
-  default     = "10.0.0.0/16"
 }
 
-variable "public_subnet_cidr" {
-  description = "Public subnet CIDR"
-  type        = string
-  default     = "10.0.1.0/24"
-}
-
-variable "private_subnet_cidr" {
-  description = "Private subnet CIDR"
-  type        = string
-  default     = "10.0.2.0/24"
+variable "mandatory_tags" {
+  description = "Mandatory tags for all resources"
+  type        = map(string)
+  default     = {
+    Environment = "production"
+    Team        = "security"
+    Service     = "demo"
+  }
 }

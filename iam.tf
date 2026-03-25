@@ -1,28 +1,71 @@
-# ── MFA 없는 IAM User (Security Hub Finding 유발) ──
-# → sh-iam (IAM.1, IAM.4, IAM.6)
-resource "aws_iam_user" "demo_no_mfa" {
-  name = "${var.project}-no-mfa"
-  tags = { Name = "${var.project}-no-mfa" }
+resource "aws_iam_user" "demo_secure" {
+  name = "${var.project}-secure"
+  tags = merge(
+    {
+      Name = "${var.project}-secure"
+    },
+    var.mandatory_tags
+  )
 }
 
-resource "aws_iam_user_policy_attachment" "demo_admin" {
-  user       = aws_iam_user.demo_no_mfa.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess"
-}
-
-resource "aws_iam_user_policy" "demo_wildcard" {
-  name   = "inline-s3-public"
-  user   = aws_iam_user.demo_no_mfa.name
+resource "aws_iam_user_policy" "demo_restricted" {
+  name = "restricted-s3-access"
+  user = aws_iam_user.demo_secure.name
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect   = "Allow"
-      Action   = "s3:*"
-      Resource = "*"
+      Effect = "Allow"
+      Action = [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ]
+      Resource = [
+        "arn:aws:s3:::${var.project}-secure/*",
+        "arn:aws:s3:::${var.project}-secure"
+      ]
     }]
   })
 }
 
-resource "aws_iam_access_key" "demo_no_mfa" {
-  user = aws_iam_user.demo_no_mfa.name
+resource "aws_iam_user_login_profile" "demo_secure" {
+  user                    = aws_iam_user.demo_secure.name
+  password_reset_required = true
+  pgp_key                = var.pgp_key
+}
+
+resource "aws_iam_user_mfa" "demo_secure" {
+  user_name = aws_iam_user.demo_secure.name
+}
+
+resource "aws_iam_role" "demo_restricted" {
+  name = "${var.project}-restricted-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        AWS = aws_iam_user.demo_secure.arn
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+
+  permissions_boundary = aws_iam_policy.permission_boundary.arn
+  tags                = var.mandatory_tags
+}
+
+resource "aws_iam_policy" "permission_boundary" {
+  name = "${var.project}-permission-boundary"
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Deny"
+      Action = [
+        "iam:*",
+        "organizations:*",
+        "account:*"
+      ]
+      Resource = "*"
+    }]
+  })
 }
