@@ -1,13 +1,13 @@
-# ── GuardDuty ──
+# ── GuardDuty ───────────────────────────────────────────────────────────────
 resource "aws_guardduty_detector" "main" {
   enable                       = true
   finding_publishing_frequency = "FIFTEEN_MINUTES"
-  tags                         = { Name = "${var.project}-guardduty" }
+  tags                         = merge(local.common_tags, { Name = "${local.name_prefix}-guardduty" })
 }
 
-# ── IAM Access Analyzer (무료, sh-external-access 유발) ──
+# ── IAM Access Analyzer ────────────────────────────────────────────────────
 resource "aws_accessanalyzer_analyzer" "main" {
-  analyzer_name = "${var.project}-analyzer"
+  analyzer_name = "${local.name_prefix}-analyzer"
   type          = "ACCOUNT"
-  tags          = { Name = "${var.project}-analyzer" }
+  tags          = merge(local.common_tags, { Name = "${local.name_prefix}-analyzer" })
 }
